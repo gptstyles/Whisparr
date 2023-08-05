@@ -49,8 +49,7 @@ namespace NzbDrone.Core.Notifications
                 qualityString += " Proper";
             }
 
-            var episodeNumbers = string.Concat(episodes.Select(e => e.EpisodeNumber)
-                                                       .Select(i => string.Format("x{0:00}", i)));
+            var episodeNumbers = string.Concat(episodes.Select(e => e.AirDate));
 
             var episodeTitles = string.Join(" + ", episodes.Select(e => e.Title));
 
@@ -265,7 +264,7 @@ namespace NzbDrone.Core.Notifications
                 }
                 catch (Exception ex)
                 {
-                    _logger.Warn(ex, "Unable to send OnDelete notification to: " + notification.Definition.Name);
+                    _logger.Warn(ex, "Unable to send OnEpisodeFileDelete notification to: " + notification.Definition.Name);
                 }
             }
         }
@@ -290,7 +289,7 @@ namespace NzbDrone.Core.Notifications
                 }
                 catch (Exception ex)
                 {
-                    _logger.Warn(ex, "Unable to send OnDelete notification to: " + notification.Definition.Name);
+                    _logger.Warn(ex, "Unable to send OnSeriesAdd notification to: " + notification.Definition.Name);
                 }
             }
         }
@@ -312,7 +311,7 @@ namespace NzbDrone.Core.Notifications
                     }
                     catch (Exception ex)
                     {
-                        _logger.Warn(ex, "Unable to send OnDelete notification to: " + notification.Definition.Name);
+                        _logger.Warn(ex, "Unable to send OnSeriesDelete notification to: " + notification.Definition.Name);
                     }
                 }
             }

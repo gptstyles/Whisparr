@@ -44,6 +44,7 @@ const fileNameTokens = [
 
 const seriesTokens = [
   { token: '{Site Title}', example: 'Site Title\'s' },
+  { token: '{Site TitleSlug}', example: 'SiteTitle\'s' },
   { token: '{Site CleanTitle}', example: 'Site Titles' },
   { token: '{Site CleanTitleYear}', example: 'Site Titles! 2010' },
   { token: '{Site CleanTitleWithoutYear}', example: 'Site Titles!' },
@@ -53,7 +54,8 @@ const seriesTokens = [
   { token: '{Site TitleYear}', example: 'Site Title\'s (2010)' },
   { token: '{Site TitleWithoutYear}', example: 'Site Title\'s' },
   { token: '{Site TitleFirstCharacter}', example: 'S' },
-  { token: '{Site Year}', example: '2010' }
+  { token: '{Site Year}', example: '2010' },
+  { token: '{Site Network}', example: 'Site Network' }
 ];
 
 const seriesIdTokens = [
@@ -68,7 +70,10 @@ const airDateTokens = [
 
 const episodeTitleTokens = [
   { token: '{Episode Title}', example: 'Episode\'s Title' },
-  { token: '{Episode CleanTitle}', example: 'Episodes Title' }
+  { token: '{Episode CleanTitle}', example: 'Episodes Title' },
+  { token: '{Episode Performers}', example: 'Lola Luv Brad Harden' },
+  { token: '{Episode PerformersFemale}', example: 'Lola Luv' },
+  { token: '{Episode PerformersMale}', example: 'Brad Harden' }
 ];
 
 const qualityTokens = [

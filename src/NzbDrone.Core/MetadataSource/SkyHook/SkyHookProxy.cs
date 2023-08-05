@@ -74,9 +74,7 @@ namespace NzbDrone.Core.MetadataSource.SkyHook
                 {
                     var slug = lowerTitle.Split(':')[1].Trim();
 
-                    int tvdbId;
-
-                    if (slug.IsNullOrWhiteSpace() || slug.Any(char.IsWhiteSpace) || !int.TryParse(slug, out tvdbId) || tvdbId <= 0)
+                    if (slug.IsNullOrWhiteSpace() || slug.Any(char.IsWhiteSpace) || !int.TryParse(slug, out var tvdbId) || tvdbId <= 0)
                     {
                         return new List<Series>();
                     }
@@ -98,7 +96,8 @@ namespace NzbDrone.Core.MetadataSource.SkyHook
                 }
 
                 var httpRequest = _requestBuilder.Create()
-                                                 .SetSegment("route", "search")
+                                                 .SetSegment("route", "site")
+                                                 .Resource("search")
                                                  .AddQueryParam("q", title.ToLower().Trim())
                                                  .Build();
 
@@ -173,9 +172,9 @@ namespace NzbDrone.Core.MetadataSource.SkyHook
                 series.Certification = show.ContentRating.ToUpper();
             }
 
-            var seasons = show.Years.OrderBy(x => x);
+            var seasons = show.Episodes.Select(e => e.Year).Distinct().OrderBy(x => x);
 
-            series.Year = show.Years.FirstOrDefault();
+            series.Year = seasons.FirstOrDefault();
             series.Seasons = seasons.Select(MapSeason).ToList();
             series.Images = show.Images.Select(MapImage).ToList();
             series.Monitored = true;
@@ -189,6 +188,7 @@ namespace NzbDrone.Core.MetadataSource.SkyHook
             {
                 Name = arg.Name,
                 Character = arg.Character,
+                Gender = MapGender(arg.Gender),
                 TpdbId = arg.ForeignId
             };
 
@@ -197,19 +197,35 @@ namespace NzbDrone.Core.MetadataSource.SkyHook
             return newActor;
         }
 
+        private static Gender MapGender(string gender)
+        {
+            if (gender == null)
+            {
+                return Gender.Other;
+            }
+
+            var lowerGender = gender.ToLowerInvariant();
+
+            switch (lowerGender)
+            {
+                case "female":
+                    return Gender.Female;
+                case "male":
+                    return Gender.Male;
+                default:
+                    return Gender.Other;
+            }
+        }
+
         private static Episode MapEpisode(EpisodeResource oracleEpisode)
         {
             var episode = new Episode();
             episode.TvdbId = oracleEpisode.ForeignId;
             episode.Overview = oracleEpisode.Overview;
             episode.SeasonNumber = oracleEpisode.Year;
-            episode.EpisodeNumber = oracleEpisode.EpisodeNumber;
             episode.AbsoluteEpisodeNumber = oracleEpisode.AbsoluteEpisodeNumber;
             episode.Title = oracleEpisode.Title;
             episode.Runtime = oracleEpisode.Duration.GetValueOrDefault();
-            episode.AiredAfterSeasonNumber = oracleEpisode.AiredAfterSeasonNumber;
-            episode.AiredBeforeSeasonNumber = oracleEpisode.AiredBeforeSeasonNumber;
-            episode.AiredBeforeEpisodeNumber = oracleEpisode.AiredBeforeEpisodeNumber;
 
             episode.AirDate = oracleEpisode.ReleaseDate;
             episode.AirDateUtc = DateTime.Parse(episode.AirDate, DateTimeFormatInfo.InvariantInfo, DateTimeStyles.AdjustToUniversal);

@@ -9,7 +9,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { SelectProvider } from 'App/SelectContext';
 import ClientSideCollectionAppState from 'App/State/ClientSideCollectionAppState';
 import SeriesAppState, { SeriesIndexAppState } from 'App/State/SeriesAppState';
-import { REFRESH_SERIES, RSS_SYNC } from 'Commands/commandNames';
+import { RSS_SYNC } from 'Commands/commandNames';
+import Alert from 'Components/Alert';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
@@ -20,8 +21,9 @@ import PageToolbarSection from 'Components/Page/Toolbar/PageToolbarSection';
 import PageToolbarSeparator from 'Components/Page/Toolbar/PageToolbarSeparator';
 import TableOptionsModalWrapper from 'Components/Table/TableOptions/TableOptionsModalWrapper';
 import withScrollPosition from 'Components/withScrollPosition';
-import { align, icons } from 'Helpers/Props';
+import { align, icons, kinds } from 'Helpers/Props';
 import SortDirection from 'Helpers/Props/SortDirection';
+import ParseToolbarButton from 'Parse/ParseToolbarButton';
 import NoSeries from 'Series/NoSeries';
 import { executeCommand } from 'Store/Actions/commandActions';
 import { fetchQueueDetails } from 'Store/Actions/queueActions';
@@ -49,6 +51,7 @@ import SeriesIndexSelectFooter from './Select/SeriesIndexSelectFooter';
 import SeriesIndexSelectModeButton from './Select/SeriesIndexSelectModeButton';
 import SeriesIndexSelectModeMenuItem from './Select/SeriesIndexSelectModeMenuItem';
 import SeriesIndexFooter from './SeriesIndexFooter';
+import SeriesIndexRefreshSeriesButton from './SeriesIndexRefreshSeriesButton';
 import SeriesIndexTable from './Table/SeriesIndexTable';
 import SeriesIndexTableOptions from './Table/SeriesIndexTableOptions';
 import styles from './SeriesIndex.css';
@@ -86,9 +89,6 @@ const SeriesIndex = withScrollPosition((props: SeriesIndexProps) => {
   }: SeriesAppState & SeriesIndexAppState & ClientSideCollectionAppState =
     useSelector(createSeriesClientSideCollectionItemsSelector('seriesIndex'));
 
-  const isRefreshingSeries = useSelector(
-    createCommandExecutingSelector(REFRESH_SERIES)
-  );
   const isRssSyncExecuting = useSelector(
     createCommandExecutingSelector(RSS_SYNC)
   );
@@ -104,14 +104,6 @@ const SeriesIndex = withScrollPosition((props: SeriesIndexProps) => {
   useEffect(() => {
     dispatch(fetchSeries());
     dispatch(fetchQueueDetails({ all: true }));
-  }, [dispatch]);
-
-  const onRefreshSeriesPress = useCallback(() => {
-    dispatch(
-      executeCommand({
-        name: REFRESH_SERIES,
-      })
-    );
   }, [dispatch]);
 
   const onRssSyncPress = useCallback(() => {
@@ -227,13 +219,9 @@ const SeriesIndex = withScrollPosition((props: SeriesIndexProps) => {
       <PageContent>
         <PageToolbar>
           <PageToolbarSection>
-            <PageToolbarButton
-              label="Update all"
-              iconName={icons.REFRESH}
-              spinningName={icons.REFRESH}
-              isSpinning={isRefreshingSeries}
-              isDisabled={hasNoSeries}
-              onPress={onRefreshSeriesPress}
+            <SeriesIndexRefreshSeriesButton
+              isSelectMode={isSelectMode}
+              selectedFilterKey={selectedFilterKey}
             />
 
             <PageToolbarButton
@@ -259,6 +247,9 @@ const SeriesIndex = withScrollPosition((props: SeriesIndexProps) => {
               isSelectMode={isSelectMode}
               overflowComponent={SeriesIndexSelectAllMenuItem}
             />
+
+            <PageToolbarSeparator />
+            <ParseToolbarButton />
           </PageToolbarSection>
 
           <PageToolbarSection
@@ -318,7 +309,9 @@ const SeriesIndex = withScrollPosition((props: SeriesIndexProps) => {
           >
             {isFetching && !isPopulated ? <LoadingIndicator /> : null}
 
-            {!isFetching && !!error ? <div>Unable to load series</div> : null}
+            {!isFetching && !!error ? (
+              <Alert kind={kinds.DANGER}>Unable to load series</Alert>
+            ) : null}
 
             {isLoaded ? (
               <div className={styles.contentBodyContainer}>

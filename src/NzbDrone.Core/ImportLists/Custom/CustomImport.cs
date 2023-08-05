@@ -40,7 +40,7 @@ namespace NzbDrone.Core.ImportLists.Custom
                 {
                     series.Add(new ImportListItemInfo
                     {
-                        TvdbId = item.TvdbId
+                        TpdbSiteId = item.TvdbId
                     });
                 }
 

@@ -54,7 +54,7 @@ namespace NzbDrone.Core.ImportLists
 
                 var pageableRequestChain = pageableRequestChainSelector(generator);
 
-                for (int i = 0; i < pageableRequestChain.Tiers; i++)
+                for (var i = 0; i < pageableRequestChain.Tiers; i++)
                 {
                     var pageableRequests = pageableRequestChain.GetTier(i);
 
@@ -167,7 +167,7 @@ namespace NzbDrone.Core.ImportLists
 
         protected virtual bool IsValidItem(ImportListItemInfo listItem)
         {
-            if (listItem.Title.IsNullOrWhiteSpace() && listItem.ImdbId.IsNullOrWhiteSpace() && listItem.TmdbId == 0)
+            if (listItem.Title.IsNullOrWhiteSpace() && listItem.TpdbSiteId == 0)
             {
                 return false;
             }

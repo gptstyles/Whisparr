@@ -8,14 +8,16 @@ import RelativeDateCellConnector from 'Components/Table/Cells/RelativeDateCellCo
 import TableRowCell from 'Components/Table/Cells/TableRowCell';
 import TableSelectCell from 'Components/Table/Cells/TableSelectCell';
 import TableRow from 'Components/Table/TableRow';
+import Tooltip from 'Components/Tooltip/Tooltip';
 import EpisodeFormats from 'Episode/EpisodeFormats';
 import EpisodeLanguages from 'Episode/EpisodeLanguages';
 import EpisodeQuality from 'Episode/EpisodeQuality';
 import EpisodeTitleLink from 'Episode/EpisodeTitleLink';
-import { icons, kinds } from 'Helpers/Props';
+import { icons, kinds, tooltipPositions } from 'Helpers/Props';
 import InteractiveImportModal from 'InteractiveImport/InteractiveImportModal';
 import SeriesTitleLink from 'Series/SeriesTitleLink';
 import formatBytes from 'Utilities/Number/formatBytes';
+import formatPreferredWordScore from 'Utilities/Number/formatPreferredWordScore';
 import QueueStatusCell from './QueueStatusCell';
 import RemoveQueueItemModal from './RemoveQueueItemModal';
 import TimeleftCell from './TimeleftCell';
@@ -90,6 +92,7 @@ class QueueRow extends Component {
       languages,
       quality,
       customFormats,
+      customFormatScore,
       protocol,
       indexer,
       outputPath,
@@ -167,12 +170,12 @@ class QueueRow extends Component {
               );
             }
 
-            if (name === 'episodes.airDateUtc') {
+            if (name === 'episodes.releaseDate') {
               if (episode) {
                 return (
                   <RelativeDateCellConnector
                     key={name}
-                    date={episode.airDateUtc}
+                    date={episode.releaseDate}
                   />
                 );
               }
@@ -231,6 +234,24 @@ class QueueRow extends Component {
                 <TableRowCell key={name}>
                   <EpisodeFormats
                     formats={customFormats}
+                  />
+                </TableRowCell>
+              );
+            }
+
+            if (name === 'customFormatScore') {
+              return (
+                <TableRowCell
+                  key={name}
+                  className={styles.customFormatScore}
+                >
+                  <Tooltip
+                    anchor={formatPreferredWordScore(
+                      customFormatScore,
+                      customFormats.length
+                    )}
+                    tooltip={<EpisodeFormats formats={customFormats} />}
+                    position={tooltipPositions.BOTTOM}
                   />
                 </TableRowCell>
               );
@@ -390,6 +411,7 @@ QueueRow.propTypes = {
   languages: PropTypes.arrayOf(PropTypes.object).isRequired,
   quality: PropTypes.object.isRequired,
   customFormats: PropTypes.arrayOf(PropTypes.object),
+  customFormatScore: PropTypes.number.isRequired,
   protocol: PropTypes.string.isRequired,
   indexer: PropTypes.string,
   outputPath: PropTypes.string,
@@ -413,6 +435,7 @@ QueueRow.propTypes = {
 };
 
 QueueRow.defaultProps = {
+  customFormats: [],
   isGrabbing: false,
   isRemoving: false
 };

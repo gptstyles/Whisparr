@@ -101,6 +101,14 @@ namespace NzbDrone.Core.Notifications.Discord
                         discordField.Name = "Links";
                         discordField.Value = GetLinksString(series);
                         break;
+                    case DiscordGrabFieldType.CustomFormats:
+                        discordField.Name = "Custom Formats";
+                        discordField.Value = string.Join("|", message.Episode.CustomFormats);
+                        break;
+                    case DiscordGrabFieldType.CustomFormatScore:
+                        discordField.Name = "Custom Format Score";
+                        discordField.Value = message.Episode.CustomFormatScore.ToString();
+                        break;
                     case DiscordGrabFieldType.Indexer:
                         discordField.Name = "Indexer";
                         discordField.Value = message.Episode.Release.Indexer;
@@ -326,7 +334,7 @@ namespace NzbDrone.Core.Notifications.Discord
                                       Author = new DiscordAuthor
                                       {
                                           Name = Settings.Author.IsNullOrWhiteSpace() ? Environment.MachineName : Settings.Author,
-                                          IconUrl = "https://raw.githubusercontent.com/Sonarr/Sonarr/develop/Logo/256.png"
+                                          IconUrl = "https://raw.githubusercontent.com/Whisparr/Whisparr/develop/Logo/256.png"
                                       },
                                       Title = "Health Issue Resolved: " + previousCheck.Source.Name,
                                       Description = $"The following issue is now resolved: {previousCheck.Message}",
@@ -385,7 +393,7 @@ namespace NzbDrone.Core.Notifications.Discord
                 Author = new DiscordAuthor
                 {
                     Name = Settings.Author.IsNullOrWhiteSpace() ? Environment.MachineName : Settings.Author,
-                    IconUrl = "https://raw.githubusercontent.com/Sonarr/Sonarr/develop/Logo/256.png"
+                    IconUrl = "https://raw.githubusercontent.com/Whisparr/Whisparr/develop/Logo/256.png"
                 },
                 Url = $"http://thetvdb.com/?tab=series&id={series.TvdbId}",
                 Description = "Manual interaction needed",
@@ -541,12 +549,13 @@ namespace NzbDrone.Core.Notifications.Discord
 
         private string GetTitle(Series series, List<Episode> episodes)
         {
-            var episodeNumbers = string.Concat(episodes.Select(e => e.EpisodeNumber)
-                                                       .Select(i => string.Format("x{0:00}", i)));
+            var episodeNumbers = string.Concat(episodes.Select(e => e.AirDate));
 
             var episodeTitles = string.Join(" + ", episodes.Select(e => e.Title));
 
-            return $"{series.Title} - {episodes.First().SeasonNumber}{episodeNumbers} - {episodeTitles}";
+            var title = $"{series.Title} - {episodes.First().SeasonNumber}{episodeNumbers} - {episodeTitles}";
+
+            return title.Length > 256 ? $"{title.AsSpan(0, 253)}..." : title;
         }
     }
 }

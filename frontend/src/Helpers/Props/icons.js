@@ -32,6 +32,7 @@ import {
   faBookReader as fasBookReader,
   faBroadcastTower as fasBroadcastTower,
   faBug as fasBug,
+  faCalculator as fasCalculator,
   faCalendarAlt as fasCalendarAlt,
   faCaretDown as fasCaretDown,
   faCheck as fasCheck,
@@ -67,6 +68,7 @@ import {
   faInfoCircle as fasInfoCircle,
   faLaptop as fasLaptop,
   faLevelUpAlt as fasLevelUpAlt,
+  faListCheck as fasListCheck,
   faMedkit as fasMedkit,
   faMinus as fasMinus,
   faPause as fasPause,
@@ -161,6 +163,7 @@ export const INFO = fasInfoCircle;
 export const INTERACTIVE = fasUser;
 export const KEYBOARD = farKeyboard;
 export const LOGOUT = fasSignOutAlt;
+export const MANAGE = fasListCheck;
 export const MEDIA_INFO = farFileInvoice;
 export const MISSING = fasExclamationTriangle;
 export const MONITORED = fasBookmark;
@@ -176,6 +179,7 @@ export const PAGE_PREVIOUS = fasBackward;
 export const PAGE_NEXT = fasForward;
 export const PAGE_LAST = fasFastForward;
 export const PARENT = fasLevelUpAlt;
+export const PARSE = fasCalculator;
 export const PAUSED = fasPause;
 export const PENDING = farClock;
 export const PROFILE = fasUser;

@@ -55,7 +55,7 @@ namespace NzbDrone.Core.Organizer
 
         public static readonly Regex AirDateRegex = new Regex(@"\{Release(\s|\W|_)Date\}", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-        public static readonly Regex SeriesTitleRegex = new Regex(@"(?<token>\{(?:Site)(?<separator>[- ._])(Clean)?Title(The)?(Without)?(Year)?\})",
+        public static readonly Regex SeriesTitleRegex = new Regex(@"(?<token>\{(?:Site)(?<separator>[- ._])(Clean)?Title(The)?(Without)?(Year)?(Slug)?\})",
                                                                             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Regex FileNameCleanupRegex = new Regex(@"([- ._])(\1)+", RegexOptions.Compiled);
@@ -136,7 +136,7 @@ namespace NzbDrone.Core.Organizer
 
             var pattern = namingConfig.StandardEpisodeFormat;
 
-            episodes = episodes.OrderBy(e => e.SeasonNumber).ThenBy(e => e.EpisodeNumber).ToList();
+            episodes = episodes.OrderBy(e => e.SeasonNumber).ThenBy(e => e.AirDate).ToList();
 
             var splitPatterns = pattern.Split(new char[] { '\\', '/' }, StringSplitOptions.RemoveEmptyEntries);
             var components = new List<string>();
@@ -177,7 +177,10 @@ namespace NzbDrone.Core.Organizer
                 component = component.Replace("{ellipsis}", "...");
                 component = ReplaceReservedDeviceNames(component);
 
-                components.Add(component);
+                if (component.IsNotNullOrWhiteSpace())
+                {
+                    components.Add(component);
+                }
             }
 
             return string.Join(Path.DirectorySeparatorChar.ToString(), components) + extension;
@@ -252,17 +255,39 @@ namespace NzbDrone.Core.Organizer
                 namingConfig = _namingConfigService.GetConfig();
             }
 
+            var pattern = namingConfig.SeriesFolderFormat;
             var tokenHandlers = new Dictionary<string, Func<TokenMatch, string>>(FileNameBuilderTokenEqualityComparer.Instance);
 
             AddSeriesTokens(tokenHandlers, series);
             AddIdTokens(tokenHandlers, series);
 
-            var folderName = ReplaceTokens(namingConfig.SeriesFolderFormat, tokenHandlers, namingConfig);
+            var splitPatterns = pattern.Split(new char[] { '\\', '/' }, StringSplitOptions.RemoveEmptyEntries);
+            var components = new List<string>();
 
-            folderName = CleanFolderName(folderName);
-            folderName = ReplaceReservedDeviceNames(folderName);
+            foreach (var s in splitPatterns)
+            {
+                var splitPattern = s;
 
-            return folderName;
+                var component = ReplaceTokens(splitPattern, tokenHandlers, namingConfig);
+                component = CleanFolderName(component);
+                component = ReplaceReservedDeviceNames(component);
+
+                if (component.IsNotNullOrWhiteSpace())
+                {
+                    components.Add(component);
+                }
+            }
+
+            return Path.Combine(components.ToArray());
+        }
+
+        public static string SlugTitle(string title)
+        {
+            title = title.Replace(" ", "");
+            title = ScenifyReplaceChars.Replace(title, " ");
+            title = ScenifyRemoveChars.Replace(title, string.Empty);
+
+            return title;
         }
 
         public static string CleanTitle(string title)
@@ -347,6 +372,7 @@ namespace NzbDrone.Core.Organizer
         private void AddSeriesTokens(Dictionary<string, Func<TokenMatch, string>> tokenHandlers, Series series)
         {
             tokenHandlers["{Site Title}"] = m => series.Title;
+            tokenHandlers["{Site TitleSlug}"] = m => SlugTitle(series.Title);
             tokenHandlers["{Site CleanTitle}"] = m => CleanTitle(series.Title);
             tokenHandlers["{Site CleanTitleYear}"] = m => CleanTitle(TitleYear(series.Title, series.Year));
             tokenHandlers["{Site CleanTitleWithoutYear}"] = m => CleanTitle(TitleWithoutYear(series.Title));
@@ -357,51 +383,18 @@ namespace NzbDrone.Core.Organizer
             tokenHandlers["{Site TitleTheWithoutYear}"] = m => TitleWithoutYear(TitleThe(series.Title));
             tokenHandlers["{Site TitleFirstCharacter}"] = m => TitleThe(series.Title).Substring(0, 1).FirstCharToUpper();
             tokenHandlers["{Site Year}"] = m => series.Year.ToString();
+
+            tokenHandlers["{Site Network}"] = m => series.Network ?? string.Empty;
         }
 
         private string AddSeasonEpisodeNumberingTokens(string pattern, Dictionary<string, Func<TokenMatch, string>> tokenHandlers, List<Episode> episodes, NamingConfig namingConfig)
         {
             var episodeFormats = GetEpisodeFormat(pattern).DistinctBy(v => v.SeasonEpisodePattern).ToList();
 
-            int index = 1;
+            var index = 1;
             foreach (var episodeFormat in episodeFormats)
             {
                 var seasonEpisodePattern = episodeFormat.SeasonEpisodePattern;
-                string formatPattern;
-
-                switch ((MultiEpisodeStyle)namingConfig.MultiEpisodeStyle)
-                {
-                    case MultiEpisodeStyle.Duplicate:
-                        formatPattern = episodeFormat.Separator + episodeFormat.SeasonEpisodePattern;
-                        seasonEpisodePattern = FormatNumberTokens(seasonEpisodePattern, formatPattern, episodes);
-                        break;
-
-                    case MultiEpisodeStyle.Repeat:
-                        formatPattern = episodeFormat.EpisodeSeparator + episodeFormat.EpisodePattern;
-                        seasonEpisodePattern = FormatNumberTokens(seasonEpisodePattern, formatPattern, episodes);
-                        break;
-
-                    case MultiEpisodeStyle.Scene:
-                        formatPattern = "-" + episodeFormat.EpisodeSeparator + episodeFormat.EpisodePattern;
-                        seasonEpisodePattern = FormatNumberTokens(seasonEpisodePattern, formatPattern, episodes);
-                        break;
-
-                    case MultiEpisodeStyle.Range:
-                        formatPattern = "-" + episodeFormat.EpisodePattern;
-                        seasonEpisodePattern = FormatRangeNumberTokens(seasonEpisodePattern, formatPattern, episodes);
-                        break;
-
-                    case MultiEpisodeStyle.PrefixedRange:
-                        formatPattern = "-" + episodeFormat.EpisodeSeparator + episodeFormat.EpisodePattern;
-                        seasonEpisodePattern = FormatRangeNumberTokens(seasonEpisodePattern, formatPattern, episodes);
-                        break;
-
-                    // MultiEpisodeStyle.Extend
-                    default:
-                        formatPattern = "-" + episodeFormat.EpisodePattern;
-                        seasonEpisodePattern = FormatNumberTokens(seasonEpisodePattern, formatPattern, episodes);
-                        break;
-                }
 
                 var token = string.Format("{{Season Episode{0}}}", index++);
                 pattern = pattern.Replace(episodeFormat.SeasonEpisodePattern, token);
@@ -409,15 +402,6 @@ namespace NzbDrone.Core.Organizer
             }
 
             AddSeasonTokens(tokenHandlers, episodes.First().SeasonNumber);
-
-            if (episodes.Count > 1)
-            {
-                tokenHandlers["{Episode}"] = m => episodes.First().EpisodeNumber.ToString(m.CustomFormat) + "-" + episodes.Last().EpisodeNumber.ToString(m.CustomFormat);
-            }
-            else
-            {
-                tokenHandlers["{Episode}"] = m => episodes.First().EpisodeNumber.ToString(m.CustomFormat);
-            }
 
             return pattern;
         }
@@ -437,6 +421,10 @@ namespace NzbDrone.Core.Organizer
             {
                 tokenHandlers["{Release Date}"] = m => "Unknown";
             }
+
+            tokenHandlers["{Episode Performers}"] = m => episodes.SelectMany(e => e.Actors.Select(a => a.Name)).Join(" ");
+            tokenHandlers["{Episode PerformersFemale}"] = m => episodes.SelectMany(e => e.Actors.Where(a => a.Gender == Gender.Female).Select(a => a.Name)).Join(" ");
+            tokenHandlers["{Episode PerformersMale}"] = m => episodes.SelectMany(e => e.Actors.Where(a => a.Gender == Gender.Male).Select(a => a.Name)).Join(" ");
         }
 
         private void AddEpisodeTitlePlaceholderTokens(Dictionary<string, Func<TokenMatch, string>> tokenHandlers)
@@ -549,7 +537,7 @@ namespace NzbDrone.Core.Organizer
                 }
             }
 
-            for (int i = 0; i < tokens.Count; i++)
+            for (var i = 0; i < tokens.Count; i++)
             {
                 try
                 {
@@ -704,48 +692,6 @@ namespace NzbDrone.Core.Organizer
             }
 
             return replacementText;
-        }
-
-        private string FormatNumberTokens(string basePattern, string formatPattern, List<Episode> episodes)
-        {
-            var pattern = string.Empty;
-
-            for (int i = 0; i < episodes.Count; i++)
-            {
-                var patternToReplace = i == 0 ? basePattern : formatPattern;
-
-                pattern += EpisodeRegex.Replace(patternToReplace, match => ReplaceNumberToken(match.Groups["episode"].Value, episodes[i].EpisodeNumber));
-            }
-
-            return ReplaceSeasonTokens(pattern, episodes.First().SeasonNumber);
-        }
-
-        private string FormatRangeNumberTokens(string seasonEpisodePattern, string formatPattern, List<Episode> episodes)
-        {
-            var eps = new List<Episode> { episodes.First() };
-
-            if (episodes.Count > 1)
-            {
-                eps.Add(episodes.Last());
-            }
-
-            return FormatNumberTokens(seasonEpisodePattern, formatPattern, eps);
-        }
-
-        private string ReplaceSeasonTokens(string pattern, int seasonNumber)
-        {
-            return SeasonRegex.Replace(pattern, match => ReplaceNumberToken(match.Groups["season"].Value, seasonNumber));
-        }
-
-        private string ReplaceNumberToken(string token, int value)
-        {
-            var split = token.Trim('{', '}').Split(':');
-            if (split.Length == 1)
-            {
-                return value.ToString("0");
-            }
-
-            return value.ToString(split[1]);
         }
 
         private EpisodeFormat[] GetEpisodeFormat(string pattern)

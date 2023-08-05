@@ -18,9 +18,16 @@ import ModalHeader from 'Components/Modal/ModalHeader';
 import Popover from 'Components/Tooltip/Popover';
 import { icons, inputTypes, kinds, tooltipPositions } from 'Helpers/Props';
 import formatShortTimeSpan from 'Utilities/Date/formatShortTimeSpan';
+import ImportListMonitoringOptionsPopoverContent from './ImportListMonitoringOptionsPopoverContent';
 import styles from './EditImportListModalContent.css';
 
 function EditImportListModalContent(props) {
+
+  const monitorOptions = [
+    { key: 'none', value: 'None' },
+    { key: 'specificEpisode', value: 'Specific Episode(s)' },
+    { key: 'entireSite', value: 'All Site Episodes' }
+  ];
 
   const {
     advancedSettings,
@@ -45,6 +52,7 @@ function EditImportListModalContent(props) {
     enableAutomaticAdd,
     minRefreshInterval,
     shouldMonitor,
+    siteMonitorType,
     rootFolderPath,
     qualityProfileId,
     tags,
@@ -115,19 +123,49 @@ function EditImportListModalContent(props) {
                         name={icons.INFO}
                       />
                     }
-                    title="Monitoring Options"
-                    body={<SeriesMonitoringOptionsPopoverContent />}
+                    title="List Monitoring Options"
+                    body={<ImportListMonitoringOptionsPopoverContent />}
                     position={tooltipPositions.RIGHT}
                   />
                 </FormLabel>
 
                 <FormInputGroup
-                  type={inputTypes.MONITOR_EPISODES_SELECT}
+                  type={inputTypes.SELECT}
                   name="shouldMonitor"
+                  values={monitorOptions}
                   onChange={onInputChange}
                   {...shouldMonitor}
                 />
               </FormGroup>
+
+              {
+                shouldMonitor.value === 'entireSite' ?
+                  <FormGroup>
+                    <FormLabel>
+                      Site Monitoring Options
+
+                      <Popover
+                        anchor={
+                          <Icon
+                            className={styles.labelIcon}
+                            name={icons.INFO}
+                          />
+                        }
+                        title="Monitoring Options"
+                        body={<SeriesMonitoringOptionsPopoverContent />}
+                        position={tooltipPositions.RIGHT}
+                      />
+                    </FormLabel>
+
+                    <FormInputGroup
+                      type={inputTypes.MONITOR_EPISODES_SELECT}
+                      name="siteMonitorType"
+                      onChange={onInputChange}
+                      {...siteMonitorType}
+                    />
+                  </FormGroup> :
+                  null
+              }
 
               <FormGroup>
                 <FormLabel>Root Folder</FormLabel>

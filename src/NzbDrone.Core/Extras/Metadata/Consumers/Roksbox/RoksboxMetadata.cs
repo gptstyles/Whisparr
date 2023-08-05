@@ -151,7 +151,7 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Roksbox
                     var doc = new XDocument();
 
                     var details = new XElement("video");
-                    details.Add(new XElement("title", string.Format("{0} - {1}x{2} - {3}", series.Title, episode.SeasonNumber, episode.EpisodeNumber, episode.Title)));
+                    details.Add(new XElement("title", string.Format("{0} - {1}x{2} - {3}", series.Title, episode.SeasonNumber, episode.AirDate, episode.Title)));
                     details.Add(new XElement("year", episode.AirDate));
                     details.Add(new XElement("genre", string.Join(" / ", series.Genres)));
                     var actors = string.Join(" , ", episode.Actors.ConvertAll(c => c.Name + " - " + c.Character).GetRange(0, Math.Min(3, episode.Actors.Count)));
@@ -209,8 +209,7 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Roksbox
 
             var seasonFolders = GetSeasonFolders(series);
 
-            string seasonFolder;
-            if (!seasonFolders.TryGetValue(season.SeasonNumber, out seasonFolder))
+            if (!seasonFolders.TryGetValue(season.SeasonNumber, out var seasonFolder))
             {
                 _logger.Trace("Failed to find season folder for series {0}, season {1}.", series.Title, season.SeasonNumber);
                 return new List<ImageFileResult>();
@@ -277,8 +276,7 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Roksbox
                     }
                     else
                     {
-                        int matchedSeason;
-                        if (int.TryParse(seasonNumber, out matchedSeason))
+                        if (int.TryParse(seasonNumber, out var matchedSeason))
                         {
                             seasonFolderMap[matchedSeason] = folder;
                         }

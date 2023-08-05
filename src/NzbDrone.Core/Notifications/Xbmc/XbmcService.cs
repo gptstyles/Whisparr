@@ -67,8 +67,7 @@ namespace NzbDrone.Core.Notifications.Xbmc
 
             var matchingSeries = allSeries.FirstOrDefault(s =>
             {
-                var tvdbId = 0;
-                int.TryParse(s.ImdbNumber, out tvdbId);
+                int.TryParse(s.ImdbNumber, out var tvdbId);
 
                 return tvdbId == series.TvdbId || s.Label == series.Title;
             });
@@ -89,7 +88,7 @@ namespace NzbDrone.Core.Notifications.Xbmc
 
                 if (seriesPath != null)
                 {
-                    _logger.Debug("Updating series {0} (Path: {1}) on Kodi host: {2}", series, seriesPath, settings.Address);
+                    _logger.Debug("Updating series {0} (Kodi path: {1}) on Kodi host: {2}", series, seriesPath, settings.Address);
                 }
                 else
                 {

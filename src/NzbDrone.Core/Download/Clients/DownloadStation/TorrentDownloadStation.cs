@@ -96,7 +96,7 @@ namespace NzbDrone.Core.Download.Clients.DownloadStation
                     SeedRatio = GetSeedRatio(torrent),
                     Status = GetStatus(torrent),
                     Message = GetMessage(torrent),
-                    CanMoveFiles = IsCompleted(torrent),
+                    CanMoveFiles = IsFinished(torrent),
                     CanBeRemoved = IsFinished(torrent)
                 };
 
@@ -216,11 +216,6 @@ namespace NzbDrone.Core.Download.Clients.DownloadStation
             return torrent.Status == DownloadStationTaskStatus.Finished;
         }
 
-        protected bool IsCompleted(DownloadStationTask torrent)
-        {
-            return torrent.Status == DownloadStationTaskStatus.Seeding || IsFinished(torrent) ||  (torrent.Status == DownloadStationTaskStatus.Waiting && torrent.Size != 0 && GetRemainingSize(torrent) <= 0);
-        }
-
         protected string GetMessage(DownloadStationTask torrent)
         {
             if (torrent.StatusExtra != null)
@@ -262,9 +257,8 @@ namespace NzbDrone.Core.Download.Clients.DownloadStation
         protected long GetRemainingSize(DownloadStationTask torrent)
         {
             var downloadedString = torrent.Additional.Transfer["size_downloaded"];
-            long downloadedSize;
 
-            if (downloadedString.IsNullOrWhiteSpace() || !long.TryParse(downloadedString, out downloadedSize))
+            if (downloadedString.IsNullOrWhiteSpace() || !long.TryParse(downloadedString, out var downloadedSize))
             {
                 _logger.Debug("Torrent {0} has invalid size_downloaded: {1}", torrent.Title, downloadedString);
                 downloadedSize = 0;
@@ -276,9 +270,8 @@ namespace NzbDrone.Core.Download.Clients.DownloadStation
         protected TimeSpan? GetRemainingTime(DownloadStationTask torrent)
         {
             var speedString = torrent.Additional.Transfer["speed_download"];
-            long downloadSpeed;
 
-            if (speedString.IsNullOrWhiteSpace() || !long.TryParse(speedString, out downloadSpeed))
+            if (speedString.IsNullOrWhiteSpace() || !long.TryParse(speedString, out var downloadSpeed))
             {
                 _logger.Debug("Torrent {0} has invalid speed_download: {1}", torrent.Title, speedString);
                 downloadSpeed = 0;

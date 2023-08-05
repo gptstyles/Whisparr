@@ -22,19 +22,19 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Xbmc
     {
         private readonly Logger _logger;
         private readonly IMapCoversToLocal _mediaCoverService;
-        private readonly ITagService _tagService;
+        private readonly ITagRepository _tagRepo;
         private readonly IDetectXbmcNfo _detectNfo;
         private readonly IDiskProvider _diskProvider;
 
         public XbmcMetadata(IDetectXbmcNfo detectNfo,
                             IDiskProvider diskProvider,
                             IMapCoversToLocal mediaCoverService,
-                            ITagService tagService,
+                            ITagRepository tagRepo,
                             Logger logger)
         {
             _logger = logger;
             _mediaCoverService = mediaCoverService;
-            _tagService = tagService;
+            _tagRepo = tagRepo;
             _diskProvider = diskProvider;
             _detectNfo = detectNfo;
         }
@@ -92,13 +92,12 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Xbmc
                 metadata.Type = MetadataType.SeasonImage;
 
                 var seasonNumberMatch = seasonMatch.Groups["season"].Value;
-                int seasonNumber;
 
                 if (seasonNumberMatch.Contains("specials"))
                 {
                     metadata.SeasonNumber = 0;
                 }
-                else if (int.TryParse(seasonNumberMatch, out seasonNumber))
+                else if (int.TryParse(seasonNumberMatch, out var seasonNumber))
                 {
                     metadata.SeasonNumber = seasonNumber;
                 }
@@ -174,7 +173,7 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Xbmc
 
                     if (series.Tags.Any())
                     {
-                        var tags = _tagService.GetTags(series.Tags);
+                        var tags = _tagRepo.Get(series.Tags);
 
                         foreach (var tag in tags)
                         {
@@ -236,19 +235,8 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Xbmc
                     var details = new XElement("episodedetails");
                     details.Add(new XElement("title", episode.Title));
                     details.Add(new XElement("season", episode.SeasonNumber));
-                    details.Add(new XElement("episode", episode.EpisodeNumber));
                     details.Add(new XElement("aired", episode.AirDate));
                     details.Add(new XElement("plot", episode.Overview));
-
-                    if (episode.SeasonNumber == 0 && episode.AiredAfterSeasonNumber.HasValue)
-                    {
-                        details.Add(new XElement("displayafterseason", episode.AiredAfterSeasonNumber));
-                    }
-                    else if (episode.SeasonNumber == 0 && episode.AiredBeforeSeasonNumber.HasValue)
-                    {
-                        details.Add(new XElement("displayseason", episode.AiredBeforeSeasonNumber));
-                        details.Add(new XElement("displayepisode", episode.AiredBeforeEpisodeNumber ?? -1));
-                    }
 
                     var tvdbId = new XElement("uniqueid", episode.TvdbId);
                     tvdbId.SetAttributeValue("type", "tvdb");
@@ -263,7 +251,7 @@ namespace NzbDrone.Core.Extras.Metadata.Consumers.Xbmc
                     {
                         details.Add(new XElement("thumb"));
                     }
-                    else
+                    else if (Settings.EpisodeImageThumb)
                     {
                         details.Add(new XElement("thumb", image.RemoteUrl));
                     }

@@ -58,6 +58,12 @@ namespace Whisparr.Api.V3.Queue
             _qualityComparer = new QualityModelComparer(qualityProfileService.GetDefaultProfile(string.Empty));
         }
 
+        [NonAction]
+        public override ActionResult<QueueResource> GetResourceByIdWithErrorHandler(int id)
+        {
+            return base.GetResourceByIdWithErrorHandler(id);
+        }
+
         protected override QueueResource GetResourceById(int id)
         {
             throw new NotImplementedException();
@@ -224,6 +230,7 @@ namespace Whisparr.Api.V3.Queue
                     return q => q.Episode;
                 case "episode.airDateUtc":
                 case "episodes.airDateUtc":
+                case "episodes.releaseDate":
                     return q => q.Episode?.AirDateUtc ?? DateTime.MinValue;
                 case "episode.title":
                 case "episodes.title":
@@ -233,6 +240,8 @@ namespace Whisparr.Api.V3.Queue
                     return q => q.Languages;
                 case "quality":
                     return q => q.Quality;
+                case "size":
+                    return q => q.Size;
                 case "progress":
                     // Avoid exploding if a download's size is 0
                     return q => 100 - (q.Sizeleft / Math.Max(q.Size * 100, 1));

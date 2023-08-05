@@ -75,6 +75,7 @@ namespace NzbDrone.Core.Indexers
         protected virtual IList<ReleaseInfo> CleanupReleases(IEnumerable<ReleaseInfo> releases)
         {
             var result = releases.DistinctBy(v => v.Guid).ToList();
+            var settings = Definition.Settings as IIndexerSettings;
 
             result.ForEach(c =>
             {

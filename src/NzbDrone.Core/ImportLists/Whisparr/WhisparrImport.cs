@@ -41,7 +41,11 @@ namespace NzbDrone.Core.ImportLists.Whisparr
                 {
                     if (Settings.ProfileIds.Any() && !Settings.ProfileIds.Contains(item.QualityProfileId))
                     {
-                        continue;
+                        series.Add(new ImportListItemInfo
+                        {
+                            TpdbSiteId = item.TvdbId,
+                            Title = item.Title
+                        });
                     }
 
                     if (Settings.TagIds.Any() && !Settings.TagIds.Any(tagId => item.Tags.Any(itemTagId => itemTagId == tagId)))
@@ -56,7 +60,7 @@ namespace NzbDrone.Core.ImportLists.Whisparr
 
                     series.Add(new ImportListItemInfo
                     {
-                        TvdbId = item.TvdbId,
+                        TpdbSiteId = item.TvdbId,
                         Title = item.Title
                     });
                 }
@@ -82,20 +86,20 @@ namespace NzbDrone.Core.ImportLists.Whisparr
                 };
             }
 
+            Settings.Validate().Filter("ApiKey").ThrowOnError();
+
             if (action == "getProfiles")
             {
-                Settings.Validate().Filter("ApiKey").ThrowOnError();
-
                 var profiles = _whisparrV3Proxy.GetQualityProfiles(Settings);
 
                 return new
                 {
                     options = profiles.OrderBy(d => d.Name, StringComparer.InvariantCultureIgnoreCase)
-                                      .Select(d => new
-                                      {
-                                          value = d.Id,
-                                          name = d.Name
-                                      })
+                        .Select(d => new
+                        {
+                            value = d.Id,
+                            name = d.Name
+                        })
                 };
             }
 
@@ -116,18 +120,16 @@ namespace NzbDrone.Core.ImportLists.Whisparr
 
             if (action == "getRootFolders")
             {
-                Settings.Validate().Filter("ApiKey").ThrowOnError();
-
-                var remoteRootfolders = _whisparrV3Proxy.GetRootFolders(Settings);
+                var remoteRootFolders = _whisparrV3Proxy.GetRootFolders(Settings);
 
                 return new
                 {
-                    options = remoteRootfolders.OrderBy(d => d.Path, StringComparer.InvariantCultureIgnoreCase)
-                                               .Select(d => new
-                                               {
-                                                   value = d.Path,
-                                                   name = d.Path
-                                               })
+                    options = remoteRootFolders.OrderBy(d => d.Path, StringComparer.InvariantCultureIgnoreCase)
+                        .Select(d => new
+                        {
+                            value = d.Path,
+                            name = d.Path
+                        })
                 };
             }
 
