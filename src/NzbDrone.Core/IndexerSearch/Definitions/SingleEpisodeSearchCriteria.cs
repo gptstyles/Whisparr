@@ -1,5 +1,4 @@
 using System;
-using NzbDrone.Core.Tv;
 
 namespace NzbDrone.Core.IndexerSearch.Definitions
 {
@@ -11,7 +10,8 @@ namespace NzbDrone.Core.IndexerSearch.Definitions
 
         public override string ToString()
         {
-            return string.Format("[{0} : {1} - {2}]", Series.Title, Performer, EpisodeTitle);
+            // return string.Format("[{0} : {1} - {2}]", Series.Title, Performer, EpisodeTitle);
+            return string.Format("{1}", Performer, EpisodeTitle);
         }
     }
 }

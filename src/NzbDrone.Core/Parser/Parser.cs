@@ -41,15 +41,19 @@ namespace NzbDrone.Core.Parser
         private static readonly Regex[] ReportTitleRegex = new[]
             {
                 // Episodes with airdate (18.04.28)
-                new Regex(@"^(?<title>.+?)?[-_. ]+(?<airyear>\d{2}|\d{4})[-_. ]+(?<airmonth>[0-1][0-9])[-_. ]+(?<airday>[0-3][0-9])(?![-_. ]+[0-3][0-9])",
-                    RegexOptions.IgnoreCase | RegexOptions.Compiled),
+                // new Regex(@"^(?<title>.+?)?[-_. ]+(?<airyear>\d{2}|\d{4})[-_. ]+(?<airmonth>[0-1][0-9])[-_. ]+(?<airday>[0-3][0-9])(?![-_. ]+[0-3][0-9])",
+                //    RegexOptions.IgnoreCase | RegexOptions.Compiled),
 
                 // Episodes with airdate before title (2018-10-12, 20181012) (Strict pattern to avoid false matches)
-                new Regex(@"^(?<airyear>19[6-9]\d|20\d\d)(?<sep>[-_]?)(?<airmonth>[0-1][0-9])\k<sep>(?<airday>[0-3][0-9])",
+                new Regex(@"^(?<airyear>19[6-9]\d|20\d\d)(?<sep>[-_.]?)(?<airmonth>[0-1][0-9])\k<sep>(?<airday>[0-3][0-9])",
+                    RegexOptions.IgnoreCase | RegexOptions.Compiled),
+
+                // before? + airate + after title
+                new Regex(@"^.+?[-_. (\[*](?<airyear>19[6-9]\d|20\d\d)(?<sep>[-_.]?)(?<airmonth>[0-1][0-9])\k<sep>(?<airday>[0-3][0-9])[-_. )\]]+(?<title>.+)$",
                     RegexOptions.IgnoreCase | RegexOptions.Compiled),
 
                 // Episodes with airdate after title (2018-10-12, 20181012) (Strict pattern to avoid false matches)
-                new Regex(@"^(?<title>.+?)?[-_. ]+(?<airyear>19[6-9]\d|20\d\d)(?<sep>[-_]?)(?<airmonth>[0-1][0-9])\k<sep>(?<airday>[0-3][0-9])",
+                new Regex(@"^(?<title>.+?)?[-_. \(\[]*(?<airyear>19[6-9]\d|20\d\d)(?<sep>[-_.]?)(?<airmonth>[0-1][0-9])\k<sep>(?<airday>[0-3][0-9])",
                     RegexOptions.IgnoreCase | RegexOptions.Compiled)
             };
 
@@ -132,8 +136,11 @@ namespace NzbDrone.Core.Parser
                                                                 string.Empty,
                                                                 RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-        private static readonly Regex SixDigitAirDateRegex = new Regex(@"(?<=[_.-])(?<airdate>(?<!\d)(?<airyear>[1-9]\d{1})(?<airmonth>[0-1][0-9])(?<airday>[0-3][0-9]))(?=[_.-])",
+        private static readonly Regex SixDigitAirDateRegex = new Regex(@"(?<=[_. (-])(?<airdate>(?<!\d)(?<airyear>[1-9]\d{1})[ _.-]?(?<airmonth>[0-1][0-9])[ _.-]?(?<airday>[0-3][0-9]))(?=[_ .)-])",
                                                                         RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex EightDigitAirDateRegex = new Regex(@"(?<=[_. (-])(?<airdate>(?<!\d)(?<airday>[0-3][0-9])[ _.-]?(?<airmonth>[0-1][0-9])[ _.-]?(?<airyear>[2][0][1-9]\d{1}))(?=[ _.)-])",
+                                                                RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private static readonly RegexReplace CleanReleaseGroupRegex = new RegexReplace(@"^(.*?[-._ ](S\d+E\d+)[-._ ])|(-(RP|1|NZBGeek|Obfuscated|Scrambled|sample|Pre|postbot|xpost|Rakuv[a-z0-9]*|WhiteRev|BUYMORE|AsRequested|AlternativeToRequested|GEROV|Z0iDS3N|Chamele0n|4P|4Planet|AlteZachen|RePACKPOST))+$",
                                                                 string.Empty,
@@ -293,51 +300,83 @@ namespace NzbDrone.Core.Parser
                     }
                 }
 
-                foreach (var regex in ReportTitleRegex)
+                var eightDigitAirDateRegex = EightDigitAirDateRegex.Match(simpleTitle);
+                if (eightDigitAirDateRegex.Success)
                 {
-                    var match = regex.Matches(simpleTitle);
+                    var airYear = eightDigitAirDateRegex.Groups["airyear"].Value;
+                    var airMonth = eightDigitAirDateRegex.Groups["airmonth"].Value;
+                    var airDay = eightDigitAirDateRegex.Groups["airday"].Value;
 
-                    if (match.Count != 0)
+                    if (airMonth != "00" || airDay != "00")
                     {
-                        Logger.Trace(regex);
-                        try
-                        {
-                            var result = ParseMatchCollection(match, releaseTitle);
+                        var fixedDate = string.Format("{0}.{1}.{2}", airYear, airMonth, airDay);
 
-                            if (result != null)
-                            {
-                                result.Languages = LanguageParser.ParseLanguages(releaseTitle);
-                                Logger.Debug("Languages parsed: {0}", string.Join(", ", result.Languages));
-
-                                result.Quality = QualityParser.ParseQuality(title);
-                                Logger.Debug("Quality parsed: {0}", result.Quality);
-
-                                result.ReleaseGroup = ParseReleaseGroup(releaseTitle);
-
-                                var subGroup = GetSubGroup(match);
-                                if (!subGroup.IsNullOrWhiteSpace())
-                                {
-                                    result.ReleaseGroup = subGroup;
-                                }
-
-                                Logger.Debug("Release Group parsed: {0}", result.ReleaseGroup);
-
-                                result.ReleaseHash = GetReleaseHash(match);
-                                if (!result.ReleaseHash.IsNullOrWhiteSpace())
-                                {
-                                    Logger.Debug("Release Hash parsed: {0}", result.ReleaseHash);
-                                }
-
-                                return result;
-                            }
-                        }
-                        catch (InvalidDateException ex)
-                        {
-                            Logger.Debug(ex, ex.Message);
-                            break;
-                        }
+                        simpleTitle = simpleTitle.Replace(eightDigitAirDateRegex.Groups["airdate"].Value, fixedDate);
                     }
                 }
+
+                MatchCollection match = null;
+                var prevTitleLenght = 0;
+
+                foreach (var regex in ReportTitleRegex)
+                {
+                    var currentMatch = regex.Matches(simpleTitle);
+
+                    if (currentMatch.Count != 0)
+                    {
+                        var titleGroupLenght = currentMatch[0].Groups["title"].Value.Length;
+                        if (prevTitleLenght < titleGroupLenght)
+                        {
+                            prevTitleLenght = titleGroupLenght;
+                            match = currentMatch;
+                        }
+                    }
+
+                    Logger.Trace(regex);
+                }
+
+                if (match != null)
+                {
+                    try
+                    {
+                        var result = ParseMatchCollection(match, releaseTitle);
+
+                        if (result != null)
+                        {
+                            result.Languages = LanguageParser.ParseLanguages(releaseTitle);
+                            Logger.Debug("Languages parsed: {0}", string.Join(", ", result.Languages));
+
+                            result.Quality = QualityParser.ParseQuality(title);
+                            Logger.Debug("Quality parsed: {0}", result.Quality);
+
+                            result.ReleaseGroup = ParseReleaseGroup(releaseTitle);
+
+                            var subGroup = GetSubGroup(match);
+                            if (!subGroup.IsNullOrWhiteSpace())
+                            {
+                                result.ReleaseGroup = subGroup;
+                            }
+
+                            Logger.Debug("Release Group parsed: {0}", result.ReleaseGroup);
+
+                            result.ReleaseHash = GetReleaseHash(match);
+                            if (!result.ReleaseHash.IsNullOrWhiteSpace())
+                            {
+                                Logger.Debug("Release Hash parsed: {0}", result.ReleaseHash);
+                            }
+
+                            return result;
+                        }
+                    }
+                    catch (InvalidDateException ex)
+                    {
+                        Logger.Debug(ex, ex.Message);
+
+                        // break;
+                    }
+                }
+
+                // }
             }
             catch (Exception e)
             {

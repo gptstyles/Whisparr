@@ -80,6 +80,17 @@ namespace NzbDrone.Core.Indexers.Newznab
 
             if (SupportsSearch)
             {
+                var epiQueryTitles = new List<string> { searchCriteria.EpisodeTitle };
+                var cleanEpiQueryTitles = epiQueryTitles.Select(SearchCriteriaBase.GetCleanSceneTitle).Distinct().ToList();
+                var searchEpiQueryTitles = TextSearchEngine == "raw" ? epiQueryTitles : cleanEpiQueryTitles;
+                foreach (var queryTitle in searchEpiQueryTitles)
+                {
+                    pageableRequests.Add(GetPagedRequests(MaxPages,
+                        Settings.Categories,
+                        "search",
+                        $"&q={NewsnabifyTitle(queryTitle)}"));
+                }
+
                 var queryTitles = TextSearchEngine == "raw" ? searchCriteria.SceneTitles : searchCriteria.CleanSceneTitles;
                 foreach (var queryTitle in queryTitles)
                 {
@@ -152,7 +163,9 @@ namespace NzbDrone.Core.Indexers.Newznab
         private static string NewsnabifyTitle(string title)
         {
             title = title.Replace("+", " ");
-            return Uri.EscapeDataString(title);
+            return title;
+
+            // return Uri.EscapeDataString(title);
         }
     }
 }

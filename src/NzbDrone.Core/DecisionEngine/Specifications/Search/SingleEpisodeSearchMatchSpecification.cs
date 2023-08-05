@@ -43,8 +43,9 @@ namespace NzbDrone.Core.DecisionEngine.Specifications.Search
 
             // TODO match by performer or release date
             var releaseDate = singleEpisodeSpec.ReleaseDate.Value.ToString(Episode.AIR_DATE_FORMAT);
+            var releaseDatePlus1 = singleEpisodeSpec.ReleaseDate.Value.AddDays(1).ToString(Episode.AIR_DATE_FORMAT);
 
-            if (releaseDate != remoteEpisode.ParsedEpisodeInfo.AirDate)
+            if (releaseDate != remoteEpisode.ParsedEpisodeInfo.AirDate && releaseDatePlus1 != remoteEpisode.ParsedEpisodeInfo.AirDate)
             {
                 _logger.Debug("Release date does not match searched episode, skipping.");
                 return Decision.Reject("Wrong Episode");

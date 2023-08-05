@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using NLog;
 using NLog.Fluent;
@@ -308,6 +310,12 @@ namespace NzbDrone.Core.Parser
             if (series == null)
             {
                 _logger.Debug("No matching series {0}", parsedEpisodeInfo.SeriesTitle);
+                if (searchCriteria != null)
+                {
+                    _logger.Debug("assuming searchCriteria hit the right series", parsedEpisodeInfo.SeriesTitle);
+                    return new FindSeriesResult(searchCriteria.Series, SeriesMatchType.Title);
+                }
+
                 return null;
             }
 
@@ -321,12 +329,35 @@ namespace NzbDrone.Core.Parser
             if (searchCriteria != null)
             {
                 episodeInfo = searchCriteria.Episodes.SingleOrDefault(
-                    e => e.AirDate == airDate);
+                    e =>
+                    {
+                        var dateWindow2 = e.AirDateUtc.Value.AddDays(2).ToString("yyyy-MM-dd");
+                        var dateWindow0 = e.AirDateUtc.Value.AddDays(0).ToString("yyyy-MM-dd");
+                        return e.AirDate == airDate || dateWindow2 == airDate || dateWindow0 == airDate;
+                    });
             }
 
             if (episodeInfo == null)
             {
                 episodeInfo = _episodeService.FindEpisode(series.Id, airDate, part);
+                DateTime dateParsed = DateTime.ParseExact(airDate, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+                if (episodeInfo == null)
+                {
+                    var airDateSub1 = dateParsed.AddDays(-1).ToString("yyyy-MM-dd");
+                    episodeInfo = _episodeService.FindEpisode(series.Id, airDateSub1, part);
+                }
+
+                if (episodeInfo == null)
+                {
+                    var airDateSub2 = dateParsed.AddDays(1).ToString("yyyy-MM-dd");
+                    episodeInfo = _episodeService.FindEpisode(series.Id, airDateSub2, part);
+                }
+
+                if (episodeInfo == null)
+                {
+                    var airDateSub2 = dateParsed.AddDays(-2).ToString("yyyy-MM-dd");
+                    episodeInfo = _episodeService.FindEpisode(series.Id, airDateSub2, part);
+                }
             }
 
             return episodeInfo;
